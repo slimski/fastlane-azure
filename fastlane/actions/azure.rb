@@ -109,20 +109,20 @@ module Fastlane
 
         ipa_file_name = File.basename(params[:ipa])
         ipa_azure_path = File.join(params[:path], ipa_file_name)
-        ipa_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{ipa_azure_path}"
+        ipa_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{ipa_azure_path}"
         upload_file(Azure.blobs, params[:container], ipa_azure_path, params[:ipa])
 
         if params[:dsym].to_s.length > 0
           dsym_file_name = File.basename(params[:dsym])
           dsym_azure_path = File.join(params[:path], dsym_file_name)
-          dsym_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{dsym_azure_path}"
+          dsym_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{dsym_azure_path}"
           upload_file(Azure.blobs, params[:container], dsym_azure_path, params[:dsym])
         end
 
         if params[:plist_template].to_s.length > 0 && File.exist?(params[:plist_template])
           plist_file_name = File.basename(ipa_file_name, '.*') + ".plist"
           plist_azure_path = File.join(params[:path], plist_file_name)
-          plist_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{plist_azure_url}"
+          plist_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{plist_azure_url}"
 
           plist_template = eth.load_from_path(params[:plist_template])
           plist_render = eth.render(plist_template, {
