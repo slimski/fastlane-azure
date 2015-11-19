@@ -10,6 +10,7 @@ end
 module Fastlane
   module Actions
     module SharedValues
+      AZURE_APK_OUTPUT_PATH = :AZURE_APK_OUTPUT_PATH
       AZURE_IPA_OUTPUT_PATH = :AZURE_IPA_OUTPUT_PATH
       AZURE_DSYM_OUTPUT_PATH = :AZURE_DSYM_OUTPUT_PATH
       AZURE_PLIST_OUTPUT_PATH = :AZURE_PLIST_OUTPUT_PATH
@@ -22,6 +23,11 @@ module Fastlane
 
       def self.available_options
         [
+          FastlaneCore::ConfigItem.new(key: :apk,
+                                       env_name: "",
+                                       description: ".apk file for the build",
+                                       optional: true,
+                                       default_value: Actions.lane_context[SharedValues::GRADLE_APK_OUTPUT_PATH]),
           FastlaneCore::ConfigItem.new(key: :ipa,
                                        env_name: "",
                                        description: ".ipa file for the build",
@@ -77,6 +83,7 @@ module Fastlane
 
       def self.run(config)
         params = {}
+        params[:apk] = config[:apk]
         params[:ipa] = config[:ipa]
         params[:dsym] = config[:dsym]
         params[:plist_template] = config[:plist_template]
@@ -91,8 +98,11 @@ module Fastlane
         raise "No Azure account name given, pass using `account_name: 'account name'`".red unless params[:account_name].to_s.length > 0
         raise "No Azure access key given, pass using `access_key: 'access key'`".red unless params[:access_key].to_s.length > 0
         raise "No Azure container given, pass using `container: 'container'`".red unless params[:container].to_s.length > 0
-        raise "No IPA file path given, pass using `ipa: 'ipa path'`".red unless params[:ipa].to_s.length > 0
         raise "No path given, pass using `path: 'path'`".red unless params[:path].to_s.length > 0
+
+        if params[:ipa].to_s.length == 0 && params[:apk].to_s.length == 0
+          raise "No IPA or APK file path given, pass using ipa or apk".red
+        end
 
         # Pass in or read from the ipa? Going with pass in for now
         if params[:plist_template].to_s.length > 0
@@ -107,46 +117,58 @@ module Fastlane
         Azure.storage_account_name = params[:account_name]
         Azure.storage_access_key = params[:access_key]
 
-        ipa_file_name = File.basename(params[:ipa])
-        ipa_azure_path = File.join(params[:path], ipa_file_name)
-        ipa_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{ipa_azure_path}"
-        upload_file(Azure.blobs, params[:container], ipa_azure_path, params[:ipa])
+        if params[:apk].to_s.length > 0
+          apk_file_name = File.basename(params[:apk])
+          apk_azure_path = File.join(params[:path], apk_file_name)
+          apk_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{apk_azure_path}"
+          upload_file(Azure.blobs, params[:container], apk_azure_path, params[:apk])
 
-        if params[:dsym].to_s.length > 0
-          dsym_file_name = File.basename(params[:dsym])
-          dsym_azure_path = File.join(params[:path], dsym_file_name)
-          dsym_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{dsym_azure_path}"
-          upload_file(Azure.blobs, params[:container], dsym_azure_path, params[:dsym])
+          Actions.lane_context[SharedValues::AZURE_APK_OUTPUT_PATH] = apk_azure_url
+          ENV[SharedValues::AZURE_APK_OUTPUT_PATH.to_s] = apk_azure_url
         end
 
-        if params[:plist_template].to_s.length > 0 && File.exist?(params[:plist_template])
-          plist_file_name = File.basename(ipa_file_name, '.*') + ".plist"
-          plist_azure_path = File.join(params[:path], plist_file_name)
-          plist_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{plist_azure_url}"
+        if params[:ipa].to_s.length > 0
+          ipa_file_name = File.basename(params[:ipa])
+          ipa_azure_path = File.join(params[:path], ipa_file_name)
+          ipa_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{ipa_azure_path}"
+          upload_file(Azure.blobs, params[:container], ipa_azure_path, params[:ipa])
 
-          plist_template = eth.load_from_path(params[:plist_template])
-          plist_render = eth.render(plist_template, {
-            url: ipa_azure_url,
-            bundle_id: params[:bundle_id],
-            bundle_version: params[:bundle_version],
-            title: params[:title]
-          })
+          if params[:dsym].to_s.length > 0
+            dsym_file_name = File.basename(params[:dsym])
+            dsym_azure_path = File.join(params[:path], dsym_file_name)
+            dsym_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{dsym_azure_path}"
+            upload_file(Azure.blobs, params[:container], dsym_azure_path, params[:dsym])
+          end
 
-          Helper.log.info "Uploading plist to #{params[:container]}/#{plist_azure_path}"
-          Azure.blobs.create_block_blob(params[:container], plist_azure_path, plist_render)
-        end
+          if params[:plist_template].to_s.length > 0 && File.exist?(params[:plist_template])
+            plist_file_name = File.basename(ipa_file_name, '.*') + ".plist"
+            plist_azure_path = File.join(params[:path], plist_file_name)
+            plist_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{plist_azure_url}"
 
-        Actions.lane_context[SharedValues::AZURE_IPA_OUTPUT_PATH] = ipa_azure_url
-        ENV[SharedValues::AZURE_IPA_OUTPUT_PATH.to_s] = ipa_azure_url
+            plist_template = eth.load_from_path(params[:plist_template])
+            plist_render = eth.render(plist_template, {
+              url: ipa_azure_url,
+              bundle_id: params[:bundle_id],
+              bundle_version: params[:bundle_version],
+              title: params[:title]
+            })
 
-        if dsym_azure_url.to_s.length > 0
-          Actions.lane_context[SharedValues::AZURE_DSYM_OUTPUT_PATH] = dsym_azure_url
-          ENV[SharedValues::AZURE_DSYM_OUTPUT_PATH.to_s] = dsym_azure_url
-        end
+            Helper.log.info "Uploading plist to #{params[:container]}/#{plist_azure_path}"
+            Azure.blobs.create_block_blob(params[:container], plist_azure_path, plist_render)
+          end
 
-        if plist_azure_url.to_s.length > 0
-          Actions.lane_context[SharedValues::AZURE_PLIST_OUTPUT_PATH] = plist_azure_url
-          ENV[SharedValues::AZURE_PLIST_OUTPUT_PATH.to_s] = plist_azure_url
+          Actions.lane_context[SharedValues::AZURE_IPA_OUTPUT_PATH] = ipa_azure_url
+          ENV[SharedValues::AZURE_IPA_OUTPUT_PATH.to_s] = ipa_azure_url
+
+          if dsym_azure_url.to_s.length > 0
+            Actions.lane_context[SharedValues::AZURE_DSYM_OUTPUT_PATH] = dsym_azure_url
+            ENV[SharedValues::AZURE_DSYM_OUTPUT_PATH.to_s] = dsym_azure_url
+          end
+
+          if plist_azure_url.to_s.length > 0
+            Actions.lane_context[SharedValues::AZURE_PLIST_OUTPUT_PATH] = plist_azure_url
+            ENV[SharedValues::AZURE_PLIST_OUTPUT_PATH.to_s] = plist_azure_url
+          end
         end
       end
 
