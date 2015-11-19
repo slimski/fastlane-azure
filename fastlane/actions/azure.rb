@@ -78,7 +78,7 @@ module Fastlane
       end
 
       def self.is_supported?(platform)
-        platform == :ios
+        true
       end
 
       def self.run(config)
