@@ -28,6 +28,10 @@ module Fastlane
                                        description: ".apk file for the build",
                                        optional: true,
                                        default_value: Actions.lane_context[SharedValues::GRADLE_APK_OUTPUT_PATH]),
+          FastlaneCore::ConfigItem.new(key: :mapping,
+                                       env_name: "",
+                                       description: "proguard mapping file for the build",
+                                       optional: true),
           FastlaneCore::ConfigItem.new(key: :ipa,
                                        env_name: "",
                                        description: ".ipa file for the build",
@@ -84,6 +88,7 @@ module Fastlane
       def self.run(config)
         params = {}
         params[:apk] = config[:apk]
+        params[:mapping] = config[:mapping]
         params[:ipa] = config[:ipa]
         params[:dsym] = config[:dsym]
         params[:plist_template] = config[:plist_template]
@@ -122,6 +127,13 @@ module Fastlane
           apk_azure_path = File.join(params[:path], apk_file_name)
           apk_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{apk_azure_path}"
           upload_file(Azure.blobs, params[:container], apk_azure_path, params[:apk])
+
+          if params[:mapping].to_s.length > 0
+            mapping_file_name = File.basename(params[:mapping])
+            mapping_azure_path = File.join(params[:path], mapping_file_name)
+            mapping_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{mapping_azure_path}"
+            upload_file(Azure.blobs, params[:container], mapping_azure_path, params[:mapping])
+          end
 
           Actions.lane_context[SharedValues::AZURE_APK_OUTPUT_PATH] = apk_azure_url
           ENV[SharedValues::AZURE_APK_OUTPUT_PATH.to_s] = apk_azure_url
