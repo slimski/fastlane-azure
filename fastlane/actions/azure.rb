@@ -199,8 +199,6 @@ module Fastlane
           }
         end
 
-        # https://github.com/Azure/azure-sdk-for-ruby/issues/294
-        service.client.reset_agents!
         service.commit_blob_blocks(container, blob, block_list)
         Helper.log.info "Done uploading #{filepath} to #{container}/#{blob}"
       end
