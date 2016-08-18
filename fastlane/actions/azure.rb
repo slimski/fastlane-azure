@@ -1,4 +1,4 @@
-require "azure"
+require "azure/storage"
 require 'fastlane/erb_template_helper'
 
 class ::File
@@ -118,21 +118,20 @@ module Fastlane
 
         eth = Fastlane::ErbTemplateHelper
 
-        # Had to use global Azure variables rather than creating a local client
-        Azure.storage_account_name = params[:account_name]
-        Azure.storage_access_key = params[:access_key]
+        Azure::Storage.setup(:storage_account_name => params[:account_name], :storage_access_key => params[:access_key])
+        blobs = Azure::Storage::Blob::BlobService.new
 
         if params[:apk].to_s.length > 0
           apk_file_name = File.basename(params[:apk])
           apk_azure_path = File.join(params[:path], apk_file_name)
           apk_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{apk_azure_path}"
-          upload_file(Azure.blobs, params[:container], apk_azure_path, params[:apk])
+          upload_file(blobs, params[:container], apk_azure_path, params[:apk])
 
           if params[:mapping].to_s.length > 0
             mapping_file_name = File.basename(params[:mapping])
             mapping_azure_path = File.join(params[:path], mapping_file_name)
             mapping_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{mapping_azure_path}"
-            upload_file(Azure.blobs, params[:container], mapping_azure_path, params[:mapping])
+            upload_file(blobs, params[:container], mapping_azure_path, params[:mapping])
           end
 
           Actions.lane_context[SharedValues::AZURE_APK_OUTPUT_PATH] = apk_azure_url
@@ -143,13 +142,13 @@ module Fastlane
           ipa_file_name = File.basename(params[:ipa])
           ipa_azure_path = File.join(params[:path], ipa_file_name)
           ipa_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{ipa_azure_path}"
-          upload_file(Azure.blobs, params[:container], ipa_azure_path, params[:ipa])
+          upload_file(blobs, params[:container], ipa_azure_path, params[:ipa])
 
           if params[:dsym].to_s.length > 0
             dsym_file_name = File.basename(params[:dsym])
             dsym_azure_path = File.join(params[:path], dsym_file_name)
             dsym_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{dsym_azure_path}"
-            upload_file(Azure.blobs, params[:container], dsym_azure_path, params[:dsym])
+            upload_file(blobs, params[:container], dsym_azure_path, params[:dsym])
           end
 
           if params[:plist_template].to_s.length > 0 && File.exist?(params[:plist_template])
@@ -166,7 +165,7 @@ module Fastlane
             })
 
             Helper.log.info "Uploading plist to #{params[:container]}/#{plist_azure_path}"
-            Azure.blobs.create_block_blob(params[:container], plist_azure_path, plist_render)
+            blobs.create_block_blob(params[:container], plist_azure_path, plist_render)
           end
 
           Actions.lane_context[SharedValues::AZURE_IPA_OUTPUT_PATH] = ipa_azure_url
@@ -193,7 +192,7 @@ module Fastlane
           f.each_chunk {|chunk|
             block_id = counter.to_s.rjust(5, '0')
             block_list << [block_id, :uncommitted]
-            service.create_blob_block(container, blob, block_id, chunk)
+            service.put_blob_block(container, blob, block_id, chunk)
             Helper.log.info "Uploaded chunk #{counter}"
             counter += 1
           }
