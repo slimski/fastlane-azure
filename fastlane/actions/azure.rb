@@ -77,6 +77,10 @@ module Fastlane
                                         env_name: "",
                                         description: "App title for releases",
                                         optional: true),
+           FastlaneCore::ConfigItem.new(key: :deploy_html,
+                                        env_name: "",
+                                        description: "HTML file with download link to the app",
+                                        optional: true),
         ]
 
       end
@@ -99,6 +103,7 @@ module Fastlane
         params[:access_key] = config[:access_key]
         params[:container] = config[:container]
         params[:path] = config[:path]
+        params[:deploy_html] = config[:deploy_html]
 
         raise "No Azure account name given, pass using `account_name: 'account name'`".red unless params[:account_name].to_s.length > 0
         raise "No Azure access key given, pass using `access_key: 'access key'`".red unless params[:access_key].to_s.length > 0
@@ -120,6 +125,13 @@ module Fastlane
 
         Azure::Storage.setup(:storage_account_name => params[:account_name], :storage_access_key => params[:access_key])
         blobs = Azure::Storage::Blob::BlobService.new
+
+        if params[:deploy_html].to_s.length > 0
+          html_file_name = File.basename(params[:deploy_html])
+          html_azure_path = Fire.join(params[:path], html_file_name)
+          html_azure_url = "https://#{params[:acount_name]}.blob.core.windows.net/#{params[:container]}/#{html_azure_path}"
+          upload_file(blobs, params[:container], html_azure_path, params[:deploy_html])
+        end
 
         if params[:apk].to_s.length > 0
           apk_file_name = File.basename(params[:apk])
