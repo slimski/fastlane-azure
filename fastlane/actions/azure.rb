@@ -166,6 +166,7 @@ module Fastlane
               deploy_template = eth.load_from_path(params[:deploy_html])
               deploy_render = eth.render(deploy_template, {
                 url: itms_url,
+                link: plist_azure_url
               })
 
               html_file_name = File.basename(params[:deploy_html])
