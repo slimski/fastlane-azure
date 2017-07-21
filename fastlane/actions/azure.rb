@@ -77,6 +77,10 @@ module Fastlane
                                         env_name: "",
                                         description: "App title for releases",
                                         optional: true),
+           FastlaneCore::ConfigItem.new(key: :deploy_html,
+                                        env_name: "",
+                                        description: "HTML file, with template for download link to the app",
+                                        optional: true),
         ]
 
       end
@@ -99,6 +103,7 @@ module Fastlane
         params[:access_key] = config[:access_key]
         params[:container] = config[:container]
         params[:path] = config[:path]
+        params[:deploy_html] = config[:deploy_html]
 
         raise "No Azure account name given, pass using `account_name: 'account name'`".red unless params[:account_name].to_s.length > 0
         raise "No Azure access key given, pass using `access_key: 'access key'`".red unless params[:access_key].to_s.length > 0
@@ -155,6 +160,20 @@ module Fastlane
             plist_file_name = File.basename(ipa_file_name, '.*') + ".plist"
             plist_azure_path = File.join(params[:path], plist_file_name)
             plist_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{plist_azure_url}"
+
+            if params[:deploy_html].to_s.length > 0 && File.exist?(params[:deploy_html])
+              itms_url = "itms-services://?action=download-manifest&url=#{plist_azure_url}"
+              deploy_template = eth.load_from_path(params[:deploy_html])
+              deploy_render = eth.render(deploy_template, {
+                url: itms_url,
+                link: plist_azure_url
+              })
+
+              html_file_name = File.basename(params[:deploy_html])
+              html_azure_path = Fire.join(params[:path], html_file_name)
+              html_azure_url = "https://#{params[:acount_name]}.blob.core.windows.net/#{params[:container]}/#{html_azure_path}"
+              upload_file(blobs, params[:container], html_azure_path, deploy_render)
+            end
 
             plist_template = eth.load_from_path(params[:plist_template])
             plist_render = eth.render(plist_template, {
