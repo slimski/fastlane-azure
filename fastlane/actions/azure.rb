@@ -170,7 +170,7 @@ module Fastlane
               })
 
               html_file_name = File.basename(params[:deploy_html])
-              html_azure_path = Fire.join(params[:path], html_file_name)
+              html_azure_path = File.join(params[:path], html_file_name)
               html_azure_url = "https://#{params[:acount_name]}.blob.core.windows.net/#{params[:container]}/#{html_azure_path}"
               upload_file(blobs, params[:container], html_azure_path, deploy_render)
             end
