@@ -159,7 +159,7 @@ module Fastlane
           if params[:plist_template].to_s.length > 0 && File.exist?(params[:plist_template])
             plist_file_name = File.basename(ipa_file_name, '.*') + ".plist"
             plist_azure_path = File.join(params[:path], plist_file_name)
-            plist_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{plist_azure_url}"
+            plist_azure_url = "https://#{params[:account_name]}.blob.core.windows.net/#{params[:container]}/#{plist_azure_path}"
 
             if params[:deploy_html].to_s.length > 0 && File.exist?(params[:deploy_html])
               itms_url = "itms-services://?action=download-manifest&url=#{plist_azure_url}"
