@@ -172,7 +172,7 @@ module Fastlane
               html_file_name = File.basename(params[:deploy_html])
               html_azure_path = File.join(params[:path], html_file_name)
               html_azure_url = "https://#{params[:acount_name]}.blob.core.windows.net/#{params[:container]}/#{html_azure_path}"
-              blobs.create_block_blob(params[:container], html_azure_path, deploy_render)
+              blobs.create_block_blob(params[:container], html_azure_path, deploy_render, content_type: 'text/html')
             end
 
             plist_template = eth.load_from_path(params[:plist_template])
