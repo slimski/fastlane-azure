@@ -183,7 +183,7 @@ module Fastlane
               title: params[:title]
             })
 
-            Helper.log.info "Uploading plist to #{params[:container]}/#{plist_azure_path}"
+            UI.message("Uploading plist to #{params[:container]}/#{plist_azure_path}")
             blobs.create_block_blob(params[:container], plist_azure_path, plist_render)
           end
 
@@ -203,7 +203,7 @@ module Fastlane
       end
 
       def self.upload_file(service, container, blob, filepath)
-        Helper.log.info "Uploading #{filepath} to #{container}/#{blob}"
+        UI.message("Uploading #{filepath} to #{container}/#{blob}")
 
         block_list = []
         counter = 0
@@ -212,13 +212,13 @@ module Fastlane
             block_id = counter.to_s.rjust(5, '0')
             block_list << [block_id, :uncommitted]
             service.put_blob_block(container, blob, block_id, chunk)
-            Helper.log.info "Uploaded chunk #{counter}"
+            UI.message("Uploaded chunk #{counter}")
             counter += 1
           }
         end
 
         service.commit_blob_blocks(container, blob, block_list)
-        Helper.log.info "Done uploading #{filepath} to #{container}/#{blob}"
+        UI.message("Done uploading #{filepath} to #{container}/#{blob}")
       end
     end
   end
