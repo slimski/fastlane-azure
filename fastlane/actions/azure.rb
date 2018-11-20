@@ -1,4 +1,4 @@
-require "azure/storage/blob"
+require "azure/storage"
 require 'fastlane/erb_template_helper'
 
 class ::File
