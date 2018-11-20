@@ -4,7 +4,7 @@ A basic [Fastlane](https://fastlane.tools/) action that can upload to Azure blob
 You can import it using the import_from_git action:
 ```
 import_from_git(
-  url: 'https://github.com/anytimefitness/fastlane-azure.git'  
+  url: 'https://github.com/slimski/fastlane-azure.git'  
 )
 ```
 
